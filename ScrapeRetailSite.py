@@ -34,6 +34,7 @@ class Scraper:
         self.products = []
         self.soup = None
         
+
     def get_parse(self, site): 
         agent = {"User-Agent":"Mozilla/5.0"} 
         my_api_key = str(apikey.Key())
