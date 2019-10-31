@@ -1,4 +1,4 @@
-i"""
+"""
 Build a web scraper for one of the retail websites: macys.com.
 
 Author: Ye N.E.
@@ -36,10 +36,9 @@ class Scraper:
         
     def get_parse(self, site): 
         agent = {"User-Agent":"Mozilla/5.0"} 
-        my_api_key = apikey.Key()
+        my_api_key = str(apikey.Key())
         payload = {'api_key':my_api_key, 'url':site}
         #page = requests.get(site, headers=agent)
-        
         #For when using Scraper API to avoid getting blocked 
         page = requests.get('http://api.scraperapi.com', 
                             headers = agent,
