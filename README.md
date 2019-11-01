@@ -1,6 +1,10 @@
 # scrape_retail_site
 5-Week Coder Final Project: Scrape Retail Site 
 
+## Implementation in progress:
+1. Speed up the web scraper by using multiprocessing 
+
+## Guides:
 1. *"ScrapeRetailSite.py"*:
   - Run the "ScrapeRetailSite.py" to scrape, save, and search through data gotten from www.macys.com.
   - Data of interest are products listed on Macy's homepage.
