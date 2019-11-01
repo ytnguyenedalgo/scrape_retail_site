@@ -24,35 +24,44 @@ import requests
 import csv
 import apikey
 
+
+class RequestsBS4():
+    def __init__(self, site):
+        self.site = site
+        self.agent = {"User-Agent":"Mozilla/5.0"} 
+        self.soup = None
         
+        
+    def basic_request(self):
+        page = requests.get(self.site, headers=self.agent)
+        print(page.status_code)
+        self.soup = Soup(page.content, "html.parser")
+        
+        return self.soup
+    
+    
+    def scraper_api(self):
+        your_api_key = apikey.Key()
+        payload = {'api_key':your_api_key, 'url':self.site}
+        page = requests.get('http://api.scraperapi.com', 
+                            headers = self.agent,
+                            params = payload, timeout=60) 
+        self.soup = Soup(page.content, "html.parser")
+        
+        return self.soup 
+    
+    
 class Scraper: 
     def __init__(self, site="https://www.macys.com"):
         self.site = site 
-        self.my_api_key = str(apikey.Key())
         self.Categories = set()
         self.URLs = set()
         self.products = []
         self.soup = None
         
 
-    def get_parse(self, site): 
-        agent = {"User-Agent":"Mozilla/5.0"} 
-        page = requests.get(site, headers=agent)
-        #print(page.status_code)
-        
-        #For when using Scraper API to avoid getting blocked 
-# =============================================================================
-#         payload = {'api_key':self.my_api_key, 'url':site}
-#         page = requests.get('http://api.scraperapi.com', 
-#                             headers = agent,
-#                             params = payload, timeout=60) 
-# =============================================================================
-        self.soup = Soup(page.content, "html.parser")
-    
-
     def get_url_categories(self):
-        self.get_parse(self.site)
-        soup = self.soup
+        soup = RequestsBS4(self.site).basic_request()
         for tag in soup.find_all("a", href=True):
             path = tag["href"]
             if "http" not in path\
@@ -67,22 +76,21 @@ class Scraper:
         self.get_url_categories()
         
         #For small sample testing
+        test = self.Categories.pop()
+        self.Categories.add(test)
+        soup = RequestsBS4(test).basic_request()
+        for tag in soup.find_all("a", {"class": "productDescLink"}):
+                path = tag.get("href")
+                self.URLs.add(self.site+path)
+        
+        #For full website run
 # =============================================================================
-#         test = self.Categories.pop()
-#         self.Categories.add(test)
-#         self.get_parse(test)
-#         soup = self.soup
-#         for tag in soup.find_all("a", {"class": "productDescLink"}):
+#         for url in self.Categories:
+#             soup = RequestsBS4(url).basic_request()
+#             for tag in soup.find_all("a", {"class": "productDescLink"}):
 #                 path = tag.get("href")
 #                 self.URLs.add(self.site+path)
 # =============================================================================
-                
-        for url in self.Categories:
-            self.get_parse(url)
-            soup = self.soup
-            for tag in soup.find_all("a", {"class": "productDescLink"}):
-                path = tag.get("href")
-                self.URLs.add(self.site+path)
         
         return self.URLs
             
@@ -92,8 +100,7 @@ class Scraper:
         with open("macys-products.cvs", "w+") as csvf:
             w = csv.writer(csvf, delimiter=",")
             for url in self.URLs:
-                self.get_parse(url)
-                soup = self.soup
+                soup = RequestsBS4(url).basic_request()
                 try: 
                     name = (((soup.find_all("h1", {"class": "p-name h3"})[0].text)\
                             .replace("\n","")).strip()).upper()
@@ -109,16 +116,23 @@ class Scraper:
         return self.products
     
         
-    def get_product_info(self, name):
-        name = str(name).upper()
-        with open("macys-products.cvs", "r") as csvf:
-            r = csv.reader(csvf, delimiter=",")
-            for row in r:
-                if row[0]==name:
-                    print("\n product name: {}\
-                          \n price: {}\
-                          \n details: {}"\
-                          .format(row[0], row[1], row[2]))    
+    def get_product_info(self):
+        while True:
+            product_name = input("Search product name\
+                                 \nOr type 'q' to quit the program: ")
+            name = str(product_name).upper()
+            if name == 'Q':
+                break
+            with open("macys-products.cvs", "r") as csvf:
+                r = csv.reader(csvf, delimiter=",")
+                for row in r:
+                    if name == row[0]:
+                        print("\n product name: {}\
+                              \n price: {}\
+                              \n details: {}"\
+                              .format(row[0], row[1], row[2]))
+                        break    
+                print('\nNo product with such name. Please try again!')
             
             
 scrape = Scraper()
@@ -127,5 +141,5 @@ scrape = Scraper()
 scrape.scrape_and_save()
 
 #==============Search product info by name========================
-product_name = input("Search product name: ")
-scrape.get_product_info(product_name)
+scrape.get_product_info()
+
