@@ -29,13 +29,15 @@ class RequestsBS4():
     def __init__(self, site):
         self.site = site
         self.agent = {"User-Agent":"Mozilla/5.0"} 
+        self.page = None
         self.soup = None
         
         
     def basic_request(self):
-        page = requests.get(self.site, headers=self.agent)
-        print(page.status_code)
-        self.soup = Soup(page.content, "html.parser")
+        self.page = requests.get(self.site, headers=self.agent)
+        if self.page.status_code != 200:
+            print(self.page.text)
+        self.soup = Soup(self.page.content, "html.parser")
         
         return self.soup
     
@@ -43,10 +45,10 @@ class RequestsBS4():
     def scraper_api(self):
         your_api_key = apikey.Key()
         payload = {'api_key':your_api_key, 'url':self.site}
-        page = requests.get('http://api.scraperapi.com', 
+        self.page = requests.get('http://api.scraperapi.com', 
                             headers = self.agent,
                             params = payload, timeout=60) 
-        self.soup = Soup(page.content, "html.parser")
+        self.soup = Soup(self.page.content, "html.parser")
         
         return self.soup 
     
@@ -57,7 +59,6 @@ class Scraper:
         self.Categories = set()
         self.URLs = set()
         self.products = []
-        self.soup = None
         
 
     def get_url_categories(self):
@@ -100,8 +101,12 @@ class Scraper:
         with open("macys-products.cvs", "w+") as csvf:
             w = csv.writer(csvf, delimiter=",")
             for url in self.URLs:
-                soup = RequestsBS4(url).basic_request()
-                try: 
+                request = RequestsBS4(url)
+                soup = request.basic_request()
+                page = request.page
+                if page.status_code == 200:
+                    print('Processcing... {}'.format(url))  
+                try:
                     name = (((soup.find_all("h1", {"class": "p-name h3"})[0].text)\
                             .replace("\n","")).strip()).upper()
                     price = ((soup.find_all("div", {"class": "price"})[0].text)\
