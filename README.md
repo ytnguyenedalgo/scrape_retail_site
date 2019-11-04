@@ -1,5 +1,9 @@
 # scrape_retail_site
-5-Week Coder Final Project: Scrape Retail Site 
+The web scraper will scrape Macys.com.
+
+Whenever running the program, it will scrape all of the products
+listed on Macy's homepage, and save the following data for each product
+in a CSV file: the product name, price, and description.
 
 ## Implementation in progress:
 1. Speed up the web scraper by using multiprocessing 
