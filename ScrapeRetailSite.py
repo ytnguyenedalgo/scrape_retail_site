@@ -21,9 +21,11 @@ Description:
 
 from bs4 import BeautifulSoup as Soup
 from multiprocessing import Pool 
+from time import sleep
 import requests
 import csv
 import apikey
+import pandas as pd
 
 
 class RequestsBS4():
@@ -35,7 +37,7 @@ class RequestsBS4():
         
         
     def basic_request(self):
-        self.page = requests.get(self.site, headers=self.agent)
+        self.page = requests.get(self.site, headers=self.agent, timeout=60)
         if self.page.status_code != 200:
             print(self.page.text)
         self.soup = Soup(self.page.content, "html.parser")
@@ -58,12 +60,10 @@ class Scraper:
     def __init__(self, site="https://www.macys.com"):
         self.site = site 
         self.Categories = set()
-        self.URLs = set()
-        self.products = []
         
 
     def get_url_categories(self):
-        print("GETTING CATEGORIES...")
+        print("GETTING CATEGORIES URLs...")
         soup = RequestsBS4(self.site).basic_request()
         for tag in soup.find_all("a", href=True):
             path = tag["href"]
@@ -71,35 +71,41 @@ class Scraper:
                 and "COL" in path\
                 and "/shop/" in path:
                 self.Categories.add(self.site+path)
+                
+        self.Categories = list(self.Categories)
         
         return self.Categories
     
     
-    def get_url_products(self):
-        print("GETTING URLs...")
-        self.get_url_categories()
-        
+    def get_url_products(self, url = None):       
         #For small sample testing
-        test = self.Categories.pop()
-        self.Categories.add(test)
+        self.get_url_categories()
+        test = self.Categories[-1]
         soup = RequestsBS4(test).basic_request()
+        URLs = set() 
         for tag in soup.find_all("a", {"class": "productDescLink"}):
                 path = tag.get("href")
-                self.URLs.add(self.site+path)
+                URLs.add(tuple([self.site+path]))
+        print('{} URLs are now fetched from {}'.format(len(URLs), test))
         
         #For full website run
 # =============================================================================
-#         for url in self.Categories:
-#             soup = RequestsBS4(url).basic_request()
-#             for tag in soup.find_all("a", {"class": "productDescLink"}):
-#                 path = tag.get("href")
-#                 self.URLs.add(self.site+path)
+#         soup = RequestsBS4(url).basic_request()
+#         URLs = set()
+#         for tag in soup.find_all("a", {"class": "productDescLink"}):
+#             path = tag.get("href")
+#             URLs.add(tuple([self.site+path]))
+#         print('{} URLs are now fetched from {}'.format(len(URLs), url))
 # =============================================================================
             
-        self.URLs = list(self.URLs)
-        print('There are {} urls to process'.format(len(self.URLs)))
+        links = list(URLs)
         
-        return self.URLs
+        with open('product-url.csv', 'a') as csvf:
+            w = csv.writer(csvf)
+            for i in links:
+                w.writerow(i)
+            
+        return URLs
             
         
     def scrape_and_save(self, url):
@@ -108,6 +114,7 @@ class Scraper:
             request = RequestsBS4(url)
             soup = request.basic_request()
             page = request.page
+            products = []
             if page.status_code == 200:
                 print('Processcing... {}'.format(url))  
             try:
@@ -117,12 +124,12 @@ class Scraper:
                          .replace("\n","")).strip()
                 des = ((soup.find_all("p", {"data-auto": "product-description"})[0].text)\
                        .replace("\n","")).strip()
-                self.products.append((name, price, des))
-                w.writerow(self.products[-1])
+                products.append((name, price, des))
+                w.writerow(products[-1])
             except IndexError:
                 pass
         
-        return self.products
+        return products
     
 
     def get_product_info(self):
@@ -142,25 +149,46 @@ class Scraper:
                               .format(row[0], row[1], row[2]))
                         break    
                 print('\nNo product with such name. Please try again!')
-            
-            
-scraper = Scraper()
-
-
-#=================Setup a parallel processing tasks=============
-product_urls = scraper.get_url_products()
-pool = Pool(processes=5)
-data_scraping = pool.map(scraper.scrape_and_save, product_urls)
-
-#to avoid zombie processes and end all process gracefully
-pool.terminate()
-pool.join()
-
-#=================Scrape and save data from macys.com=============
+                
+     
+if __name__ == "__main__": 
+        
+    scraper = Scraper()
+    scraper.get_url_products()
+    
+    
+    #=================Setup a parallel processing tasks=============
+    #Get product urls:
 # =============================================================================
-# scrape.scrape_and_save()
-# 
-# #==============Search product info by name========================
-# scrape.get_product_info()
+#     category_urls = scraper.get_url_categories()
+#     p1 = Pool(processes=4)
+#     url_scraping = p1.map(scraper.get_url_products, category_urls)
+#     p1.terminate()
+#     p1.join()
 # =============================================================================
+    
+    #Scrape, parse, and save data:
+    url = []
+    with open ('product-url.csv', 'r') as csvf:
+        r = csv.reader(csvf)
+        for row in r:
+            url.append(row[0])
+    
+    p2 = Pool(processes=4)
+    product_scraping = p2.map(scraper.scrape_and_save, url)
+    p2.terminate()
+    p2.join()
+    
+    
+    #=================Remove duplicates from data output=============
+    colnames = ['Product name', 'Price', 'Details']
+    data = pd.read_csv('macys-products.csv', names=colnames)
+    data.sort_values('Product name', inplace = True)
+    data.drop_duplicates(subset='Product name', keep=False, inplace=True)
+    
+    
+    #==============Search product info by name========================
+    scraper.get_product_info()
+
+
 
