@@ -18,6 +18,11 @@ in a CSV file: the product name, price, and description.
   - **If user(s) will be using Scraper API to scrape data, please specify your API key in "apikey.py".** 
 
 3. *"macys-product.csv"*
-  - Where outputs from "ScrapeRetailSite.py" will be collected and stored.
+  - Where the products information from "ScrapeRetailSite.py" will be collected and stored.
   - Each row of outputs shows the product name, price, and description, respectively.
+  - The current data shown is a small sample collected when testing the code.
+  
+4. *"product-url.csv"*
+  - Where product urls from "ScrapeRetailSite.py" will be collected and stored.
+  - Each row of outputs shows the URL where the information about the products are gotten from
   - The current data shown is a small sample collected when testing the code.
