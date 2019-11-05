@@ -32,4 +32,4 @@ in a CSV file: the product name, price, and description.
   - The current data shown might not be complete due to Issue #1
 
 ## Current limitation:
-  - Issue #1 : Without using Scraper API, site access will be blocked (for a day or two) at some point during web scraping. Using Scraper API solved the issue but this approach will cost. 
+  - Issue #1 : Without using Scraper API, site access will be denied (for a day or two) at some point during web scraping. Using Scraper API will help avoid this issue but this approach will cost. 
