@@ -21,7 +21,7 @@ Description:
 
 from bs4 import BeautifulSoup as Soup
 from multiprocessing import Pool 
-from time import sleep
+#from time import sleep
 import requests
 import csv
 import apikey
@@ -79,24 +79,27 @@ class Scraper:
     
     def get_url_products(self, url = None):       
         #For small sample testing
-        self.get_url_categories()
-        test = self.Categories[-1]
-        soup = RequestsBS4(test).basic_request()
-        URLs = set() 
-        for tag in soup.find_all("a", {"class": "productDescLink"}):
-                path = tag.get("href")
-                URLs.add(tuple([self.site+path]))
-        print('{} URLs are now fetched from {}'.format(len(URLs), test))
+# =============================================================================
+#         self.get_url_categories()
+#         test = self.Categories[-1]
+#         soup = RequestsBS4(test).basic_request()
+#         URLs = set() 
+#         for tag in soup.find_all("a", {"class": "productDescLink"}):
+#                 path = tag.get("href")
+#                 URLs.add(tuple([self.site+path]))
+#         print('{} URLs are now fetched from {}'.format(len(URLs), test))
+# =============================================================================
         
         #For full website run
-# =============================================================================
-#         soup = RequestsBS4(url).basic_request()
-#         URLs = set()
-#         for tag in soup.find_all("a", {"class": "productDescLink"}):
-#             path = tag.get("href")
-#             URLs.add(tuple([self.site+path]))
-#         print('{} URLs are now fetched from {}'.format(len(URLs), url))
-# =============================================================================
+        soup = RequestsBS4(url).basic_request()
+        URLs = set()
+        for tag in soup.find_all("a", {"class": "productDescLink"}):
+            try:
+                path = tag.get("href")
+                URLs.add(tuple([self.site+path]))
+            except requests.exceptions.SSLError:
+                pass 
+        print('{} URLs are now fetched from {}'.format(len(URLs), url))
             
         links = list(URLs)
         
@@ -109,7 +112,7 @@ class Scraper:
             
         
     def scrape_and_save(self, url):
-        with open("macys-products.csv", "a") as csvf:
+        with open("macys-products-raw.csv", "a") as csvf:
             w = csv.writer(csvf, delimiter=",")
             request = RequestsBS4(url)
             soup = request.basic_request()
@@ -139,7 +142,7 @@ class Scraper:
             name = str(product_name).upper()
             if name == 'Q':
                 break
-            with open("macys-products.cvs", "r") as csvf:
+            with open("macys-products-clean.cvs", "r") as csvf:
                 r = csv.reader(csvf, delimiter=",")
                 for row in r:
                     if name == row[0]:
@@ -154,18 +157,30 @@ class Scraper:
 if __name__ == "__main__": 
         
     scraper = Scraper()
-    scraper.get_url_products()
+    
+    #For small sample test run:
+# =============================================================================
+#     scraper.get_url_products()
+#     url = []
+#     with open ('product-url.csv', 'r') as csvf:
+#         r = csv.reader(csvf)
+#         for row in r:
+#             url.append(row[0])
+#     
+#     p2 = Pool(processes=4)
+#     product_scraping = p2.map(scraper.scrape_and_save, url)
+#     p2.terminate()
+#     p2.join()
+# =============================================================================
     
     
-    #=================Setup a parallel processing tasks=============
+    #=================For full web run: setup parallel processing tasks========
     #Get product urls:
-# =============================================================================
-#     category_urls = scraper.get_url_categories()
-#     p1 = Pool(processes=4)
-#     url_scraping = p1.map(scraper.get_url_products, category_urls)
-#     p1.terminate()
-#     p1.join()
-# =============================================================================
+    category_urls = scraper.get_url_categories()
+    p1 = Pool(processes=4)
+    url_scraping = p1.map(scraper.get_url_products, category_urls)
+    p1.terminate()
+    p1.join()
     
     #Scrape, parse, and save data:
     url = []
@@ -180,11 +195,13 @@ if __name__ == "__main__":
     p2.join()
     
     
-    #=================Remove duplicates from data output=============
+    #=================Data cleansing: remove duplicates from data output=======
     colnames = ['Product name', 'Price', 'Details']
-    data = pd.read_csv('macys-products.csv', names=colnames)
+    data = pd.read_csv('macys-products-raw.csv', names=colnames)
     data.sort_values('Product name', inplace = True)
     data.drop_duplicates(subset='Product name', keep=False, inplace=True)
+    df = pd.DataFrame(data)
+    df.to_csv('macys-products-clean.csv', header=False, index=False)
     
     
     #==============Search product info by name========================
