@@ -29,7 +29,7 @@ in a CSV file: the product name, price, and description.
   - Data cleansing of "macys-product-raw.csv" using pandas software to sort product by their names and
  remove duplicates 
   - Each row of outputs shows the product name, price, and description, respectively.
-  - The current data shown might not be complete due to Issue #1
+  - The current data shown might not be complete due to [Issue #1](https://github.com/ytnguyenedalgo/scrape_retail_site/issues/1#issue-518645462)
 
 ## Current limitation:
-  - Issue #1 : Without using Scraper API, site access will be blocked (for a day or two) at some point during web scraping. Using Scraper API solved the issue but this approach will cost. 
+  - See [Issue #1](https://github.com/ytnguyenedalgo/scrape_retail_site/issues/1#issue-518645462)
