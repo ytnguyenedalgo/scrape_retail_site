@@ -3,27 +3,24 @@ Build a web scraper for one of the retail websites: macys.com.
 
 Author: Ye N.E.
 
-Description: 
-    (1) The web scraper should scrape Macys.com 
-        whenever you run your program, scrape all of the products 
-        listed on Macy's homepage, 
-        and save the following data for each product 
+Description:
+    (1) The web scraper should scrape Macys.com
+        whenever you run your program, scrape all of the products
+        listed on Macy's homepage,
+        and save the following data for each product
         in a CSV file: the product name, price, and description.
-    
-    (2) The information should come from the product pages 
+    (2) The information should come from the product pages
         (such as here: https://mcys.co/2GiLTRq)
-        
     (3) Your program needs a function that allows me to search 
-        by name all of the products in the CSV file. 
-        If a product is found, your program should print 
-        the product name, price, and description. 
+        by name all of the products in the CSV file.
+        If a product is found, your program should print
+        the product name, price, and description.
 """
 
 from bs4 import BeautifulSoup as Soup
 from multiprocessing import Pool 
 from lxml.html import fromstring
 from itertools import cycle
-#from time import sleep
 import requests
 import random
 import csv
@@ -145,7 +142,7 @@ class Scraper:
         return self.Categories
     
     
-    def get_url_products(self, url = None):       
+    def get_url_products_test(self, url = None):       
         #For small sample testing
         self.get_url_categories()
         test = self.Categories[-1]
@@ -160,22 +157,31 @@ class Scraper:
                 URLs.add(tuple([self.site+path]))
         print('\n{} URLs are now fetched from {}'.format(len(URLs), test))
         
+        links = list(URLs)
+        
+        with open('product-url.csv', 'a') as csvf:
+            w = csv.writer(csvf)
+            for i in links:
+                w.writerow(i)
+            
+        return URLs
+        
+        
+    def get_url_products(self, url = None):  
         #For full website run
-# =============================================================================
-#         request = RequestsBS4(url)
-#         if self.which_request == '1':
-#             soup = request.basic_request()
-#         elif self.which_request == '2':
-#             soup = request.scraper_api()
-#         URLs = set()
-#         for tag in soup.find_all("a", {"class": "productDescLink"}):
-#             try:
-#                 path = tag.get("href")
-#                 URLs.add(tuple([self.site+path]))
-#             except requests.exceptions.SSLError:
-#                 pass 
-#         print('\n{} URLs are now fetched from {}'.format(len(URLs), url))
-# =============================================================================
+        request = RequestsBS4(url)
+        if self.which_request == '1':
+            soup = request.basic_request()
+        elif self.which_request == '2':
+            soup = request.scraper_api()
+        URLs = set()
+        for tag in soup.find_all("a", {"class": "productDescLink"}):
+            try:
+                path = tag.get("href")
+                URLs.add(tuple([self.site+path]))
+            except requests.exceptions.SSLError:
+                pass 
+        print('\n{} URLs are now fetched from {}'.format(len(URLs), url))
             
         links = list(URLs)
         
@@ -241,7 +247,7 @@ if __name__ == "__main__":
     scraper = Scraper()
     
     #For small sample test run:
-    scraper.get_url_products()
+    scraper.get_url_products_sample()
     url = []
     with open ('product-url.csv', 'r') as csvf:
         r = csv.reader(csvf)
