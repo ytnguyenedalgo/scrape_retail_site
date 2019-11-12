@@ -25,45 +25,35 @@ import requests
 import random
 import csv
 import apikey
+import useragentls
 import pandas as pd
+import sys
+
+
+print("If you're going to use ScraperAPI,\
+      \nplease specify your api key in 'apikey.py'.\
+      \nGet your api key at 'ScraperAPI.com'.")
+which_request = input("\nEnter '1' for basic request,\
+                        \n '2' to use ScraperAPI\
+                        \n or 'q' to quit the program: ")
+if which_request == 'q':
+    sys.exit()
+answer = ['1', '2', 'q']
+while which_request not in answer: 
+    message = input("\nPlease try again!\
+                    \nEnter '1' for basic request,\
+                \nor enter '2' to use ScraperAPI: ")
+    which_request = message
 
 
 class RequestsBS4():
     def __init__(self, site):
         self.site = site
-        self.user_agent_list = [
-            #Chrome
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/60.0.3112.113 Safari/537.36',
-            'Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/60.0.3112.90 Safari/537.36',
-            'Mozilla/5.0 (Windows NT 5.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/60.0.3112.90 Safari/537.36',
-            'Mozilla/5.0 (Windows NT 6.2; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/60.0.3112.90 Safari/537.36',
-            'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/44.0.2403.157 Safari/537.36',
-            'Mozilla/5.0 (Windows NT 6.3; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/60.0.3112.113 Safari/537.36',
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/57.0.2987.133 Safari/537.36',
-            'Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/57.0.2987.133 Safari/537.36',
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/55.0.2883.87 Safari/537.36',
-            'Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/55.0.2883.87 Safari/537.36',
-            #Firefox
-            'Mozilla/4.0 (compatible; MSIE 9.0; Windows NT 6.1)',
-            'Mozilla/5.0 (Windows NT 6.1; WOW64; Trident/7.0; rv:11.0) like Gecko',
-            'Mozilla/5.0 (compatible; MSIE 9.0; Windows NT 6.1; WOW64; Trident/5.0)',
-            'Mozilla/5.0 (Windows NT 6.1; Trident/7.0; rv:11.0) like Gecko',
-            'Mozilla/5.0 (Windows NT 6.2; WOW64; Trident/7.0; rv:11.0) like Gecko',
-            'Mozilla/5.0 (Windows NT 10.0; WOW64; Trident/7.0; rv:11.0) like Gecko',
-            'Mozilla/5.0 (compatible; MSIE 9.0; Windows NT 6.0; Trident/5.0)',
-            'Mozilla/5.0 (Windows NT 6.3; WOW64; Trident/7.0; rv:11.0) like Gecko',
-            'Mozilla/5.0 (compatible; MSIE 9.0; Windows NT 6.1; Trident/5.0)',
-            'Mozilla/5.0 (Windows NT 6.1; Win64; x64; Trident/7.0; rv:11.0) like Gecko',
-            'Mozilla/5.0 (compatible; MSIE 10.0; Windows NT 6.1; WOW64; Trident/6.0)',
-            'Mozilla/5.0 (compatible; MSIE 10.0; Windows NT 6.1; Trident/6.0)',
-            'Mozilla/4.0 (compatible; MSIE 8.0; Windows NT 5.1; Trident/4.0; .NET CLR 2.0.50727; .NET CLR 3.0.4506.2152; .NET CLR 3.5.30729)'
-            ]
+        self.user_agent_list = useragentls.list
         user_agent = random.choice(self.user_agent_list)
         self.headers = {'User-Agent': user_agent}
         self.page = None
-        self.soup = None
                         
-        
     def get_proxies(self):
         url = 'https://free-proxy-list.net/'
         response = requests.get(url)
@@ -76,8 +66,7 @@ class RequestsBS4():
                                   i.xpath('.//td[2]/text()')[0]])
                 proxies.add(proxy)
         return proxies
-        
-        
+         
     def basic_request(self):
         proxy_pool = cycle(self.get_proxies())
         proxy = next(proxy_pool)
@@ -89,91 +78,69 @@ class RequestsBS4():
                                      timeout=60)
             if self.page.status_code != 200:
                 print(self.page.status_code, self.page.text)
-            self.soup = Soup(self.page.content, "html.parser")
+            soup = Soup(self.page.content, "html.parser")
         except:
             print('\nSkipping. Connection Error')
-        
-        return self.soup
-    
+        return soup
     
     def scraper_api(self):
-        your_api_key = apikey.Key()
-        payload = {'api_key':your_api_key, 'url':self.site}
-        self.page = requests.get('http://api.scraperapi.com', 
-                            headers = self.headers,
-                            params = payload, timeout=60) 
-        self.soup = Soup(self.page.content, "html.parser")
-        
-        return self.soup 
+        your_api_key = apikey.key
+        if your_api_key == 'YOUR_KEY_HERE':
+            sys.exit("\nERROR: You have not provided your api key.\n")
+        else:
+            payload = {'api_key':your_api_key, 'url':self.site}
+            self.page = requests.get('http://api.scraperapi.com', 
+                                headers = self.headers,
+                                params = payload, timeout=60) 
+            soup = Soup(self.page.content, "html.parser")
+        return soup 
+    
+    def get_url(self):
+        global which_request 
+        if which_request == '1':
+            soup = self.basic_request()
+        elif which_request == '2':
+            soup = self.scraper_api()
+        return soup 
     
     
 class Scraper:
     def __init__(self, site="https://www.macys.com"):
         self.site = site 
         self.Categories = set()
-        print("\nIf you're going to use ScraperAPI, make sure to\
-                        \nspecify your api key in apikey.py.")
-        self.which_request = input("\nEnter '1' for basic request,\
-                        \nor enter '2' to use ScraperAPI: ")
-        answer = ['1', '2']
-        while self.which_request not in answer: 
-            message = input("\nPlease try again!\
-                            \nEnter '1' for basic request,\
-                        \nor enter '2' to use ScraperAPI: ")
-            self.which_request = message
         
-
     def get_url_categories(self):
+        soup = RequestsBS4(self.site).get_url()
         print("\nGETTING CATEGORIES URLs...")
-        request = RequestsBS4(self.site)
-        if self.which_request == '1':
-            soup = request.basic_request()
-        elif self.which_request == '2':
-            soup = request.scraper_api()
         for tag in soup.find_all("a", href=True):
             path = tag["href"]
             if "http" not in path\
                 and "COL" in path\
                 and "/shop/" in path:
                 self.Categories.add(self.site+path)
-                
         self.Categories = list(self.Categories)
-        
         return self.Categories
     
-    
-    def get_url_products_test(self, url = None):       
+    def get_url_products_test(self):       
         #For small sample testing
         self.get_url_categories()
         test = self.Categories[-1]
-        request = RequestsBS4(test)
-        if self.which_request == '1':
-            soup = request.basic_request()
-        elif self.which_request == '2':
-            soup = request.scraper_api()
+        soup = RequestsBS4(test).get_url()
         URLs = set() 
         for tag in soup.find_all("a", {"class": "productDescLink"}):
                 path = tag.get("href")
                 URLs.add(tuple([self.site+path]))
         print('\n{} URLs are now fetched from {}'.format(len(URLs), test))
-        
         links = list(URLs)
-        
         with open('product-url.csv', 'a') as csvf:
             w = csv.writer(csvf)
             for i in links:
                 w.writerow(i)
-            
         return URLs
-        
         
     def get_url_products(self, url = None):  
         #For full website run
-        request = RequestsBS4(url)
-        if self.which_request == '1':
-            soup = request.basic_request()
-        elif self.which_request == '2':
-            soup = request.scraper_api()
+        soup = RequestsBS4(url).get_url()
         URLs = set()
         for tag in soup.find_all("a", {"class": "productDescLink"}):
             try:
@@ -182,25 +149,18 @@ class Scraper:
             except requests.exceptions.SSLError:
                 pass 
         print('\n{} URLs are now fetched from {}'.format(len(URLs), url))
-            
         links = list(URLs)
-        
         with open('product-url.csv', 'a') as csvf:
             w = csv.writer(csvf)
             for i in links:
                 w.writerow(i)
-            
         return URLs
             
-        
-    def scrape_and_save(self, url):
+    def scrape_and_save(self, url = None):
         with open("macys-products-raw.csv", "a") as csvf:
             w = csv.writer(csvf, delimiter=",")
             request = RequestsBS4(url)
-            if self.which_request == '1':
-                soup = request.basic_request()
-            elif self.which_request == '2':
-                soup = request.scraper_api()
+            soup = request.get_url()
             page = request.page
             products = []
             if page.status_code == 200:
@@ -216,9 +176,7 @@ class Scraper:
                 w.writerow(products[-1])
             except IndexError:
                 pass
-        
         return products
-    
 
     def get_product_info(self):
         while True:
@@ -247,7 +205,7 @@ if __name__ == "__main__":
     scraper = Scraper()
     
     #For small sample test run:
-    scraper.get_url_products_sample()
+    scraper.get_url_products_test()
     url = []
     with open ('product-url.csv', 'r') as csvf:
         r = csv.reader(csvf)
