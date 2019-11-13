@@ -23,7 +23,6 @@ from lxml.html import fromstring
 from itertools import cycle
 import requests
 import random
-import csv
 import apikey
 import useragentls
 import pandas as pd
@@ -46,7 +45,7 @@ while which_request not in answer:
     which_request = message
 
 
-class RequestsBS4():
+class RequestsBS4:
     def __init__(self, site):
         self.site = site
         self.user_agent_list = useragentls.list
@@ -102,81 +101,98 @@ class RequestsBS4():
         elif which_request == '2':
             soup = self.scraper_api()
         return soup 
+ 
     
-    
+class DataProcessing:    
+    def __init__(self, add_data={}, colnames=['col_1'], fname="output.csv"):
+        self.add_data = add_data
+        self.colnames = colnames
+        self.fname = fname
+        
+    def add_to_csv(self):
+        data = pd.read_csv(self.fname, names=self.colnames)
+        df = pd.DataFrame(data)
+        df1 = pd.DataFrame(self.add_data)
+        df2 = df.append(df1, ignore_index=True) 
+        df2.drop_duplicates(inplace=True)
+        df2.to_csv(self.fname, header=False, index=False)
+        data_col_1 = df2[self.colnames[0]].values.tolist() 
+        return data_col_1
+        
+        
 class Scraper:
     def __init__(self, site="https://www.macys.com"):
         self.site = site 
-        self.Categories = set()
         
     def get_url_categories(self):
         soup = RequestsBS4(self.site).get_url()
         print("\nGETTING CATEGORIES URLs...")
+        Categories = set()
         for tag in soup.find_all("a", href=True):
             path = tag["href"]
             if "http" not in path\
                 and "COL" in path\
                 and "/shop/" in path:
-                self.Categories.add(self.site+path)
-        self.Categories = list(self.Categories)
-        return self.Categories
+                Categories.add(self.site+path)
+        Categories = list(Categories)
+        return Categories
     
     def get_url_products_test(self):       
         #For small sample testing
-        self.get_url_categories()
-        test = self.Categories[-1]
+        category_urls = self.get_url_categories()
+        test = category_urls[-1]
         soup = RequestsBS4(test).get_url()
-        URLs = set() 
+        URLs = []
         for tag in soup.find_all("a", {"class": "productDescLink"}):
                 path = tag.get("href")
-                URLs.add(tuple([self.site+path]))
+                URLs.append(self.site+path)
         print('\n{} URLs are now fetched from {}'.format(len(URLs), test))
-        links = list(URLs)
-        with open('product-url.csv', 'a') as csvf:
-            w = csv.writer(csvf)
-            for i in links:
-                w.writerow(i)
+        add_data = {'url':URLs}
+        colnames = ['url']
+        fname = "product-url.csv"
+        URLs = DataProcessing(add_data, colnames, fname).add_to_csv()
         return URLs
         
     def get_url_products(self, url = None):  
         #For full website run
         soup = RequestsBS4(url).get_url()
-        URLs = set()
+        URLs = []
         for tag in soup.find_all("a", {"class": "productDescLink"}):
-            try:
                 path = tag.get("href")
-                URLs.add(tuple([self.site+path]))
-            except requests.exceptions.SSLError:
-                pass 
+                URLs.append(self.site+path)
         print('\n{} URLs are now fetched from {}'.format(len(URLs), url))
-        links = list(URLs)
-        with open('product-url.csv', 'a') as csvf:
-            w = csv.writer(csvf)
-            for i in links:
-                w.writerow(i)
+        add_data = {'url':URLs}
+        colnames = ['url']
+        fname = "product-url.csv"
+        URLs = DataProcessing(add_data, colnames, fname).add_to_csv()
         return URLs
             
     def scrape_and_save(self, url = None):
-        with open("macys-products-raw.csv", "a") as csvf:
-            w = csv.writer(csvf, delimiter=",")
-            request = RequestsBS4(url)
-            soup = request.get_url()
-            page = request.page
-            products = []
-            if page.status_code == 200:
-                print('\nProcesscing... {}'.format(url))  
-            try:
-                name = (((soup.find_all("h1", {"class": "p-name h3"})[0].text)\
-                        .replace("\n","")).strip()).upper()
-                price = ((soup.find_all("div", {"class": "price"})[0].text)\
-                         .replace("\n","")).strip()
-                des = ((soup.find_all("p", {"data-auto": "product-description"})[0].text)\
-                       .replace("\n","")).strip()
-                products.append((name, price, des))
-                w.writerow(products[-1])
-            except IndexError:
-                pass
-        return products
+        request = RequestsBS4(url)
+        soup = request.get_url()
+        page = request.page
+        name_ls, price_ls, des_ls = [], [], []
+        if page.status_code == 200:
+            print('\nProcesscing... {}'.format(url))  
+        try:
+            name = (((soup.find_all("h1", {"class": "p-name h3"})[0].text)\
+                    .replace("\n","")).strip()).upper()
+            price = ((soup.find_all("div", {"class": "price"})[0].text)\
+                     .replace("\n","")).strip()
+            des = ((soup.find_all("p", {"data-auto": "product-description"})[0].text)\
+                   .replace("\n","")).strip()
+            if name!= None and price!= None and des!= None:
+                name_ls.append(name)
+                price_ls.append(price)
+                des_ls.append(des)
+        except IndexError:
+            pass
+        colnames = ['name', 'price', 'des']
+        fname = "macys-products.csv"
+        add_data = {colnames[0]:name_ls,
+                    colnames[1]:price_ls, 
+                    colnames[2]:des_ls}
+        DataProcessing(add_data, colnames, fname).add_to_csv()
 
     def get_product_info(self):
         while True:
@@ -186,7 +202,7 @@ class Scraper:
             name = str(product_name).upper()
             if name == 'Q':
                 break
-            df = pd.read_csv('macys-products-clean.csv')
+            df = pd.read_csv('macys-products.csv')
             for index, row in df.iterrows():
                 if name == row[0]:
                     print("\nProduct Name: {} \n\
@@ -200,56 +216,36 @@ class Scraper:
                 print('\nNo product with such name. Please try again!')
                 
      
-if __name__ == "__main__": 
-        
+if __name__ == "__main__":     
     scraper = Scraper()
     
-    #For small sample test run:
-    scraper.get_url_products_test()
-    url = []
-    with open ('product-url.csv', 'r') as csvf:
-        r = csv.reader(csvf)
-        for row in r:
-            url.append(row[0])
-    
-    p2 = Pool(processes=4)
+    #=================For small sample test run================================
+    url = scraper.get_url_products_test()
+    p2 = Pool(processes=2)
     product_scraping = p2.map(scraper.scrape_and_save, url)
     p2.terminate()
     p2.join()
     
     
     #=================For full web run: setup parallel processing tasks========
-    #Get product urls:
 # =============================================================================
+#     #Get product urls:
 #     category_urls = scraper.get_url_categories()
 #     p1 = Pool(processes=4)
 #     url_scraping = p1.map(scraper.get_url_products, category_urls)
 #     p1.terminate()
 #     p1.join()
-#     
 #     #Scrape, parse, and save data:
-#     url = []
-#     with open ('product-url.csv', 'r') as csvf:
-#         r = csv.reader(csvf)
-#         for row in r:
-#             url.append(row[0])
-#     
+#     data = pd.read_csv("product-url.csv", names=["url"])
+#     df = pd.DataFrame(data)
+#     url = df["url"].values.tolist()
 #     p2 = Pool(processes=4)
 #     product_scraping = p2.map(scraper.scrape_and_save, url)
 #     p2.terminate()
 #     p2.join()
 # =============================================================================
-    
-    
-    #=================Data cleansing: remove duplicates from data output=======
-    colnames = ['Product name', 'Price', 'Details']
-    data = pd.read_csv('macys-products-raw.csv', names=colnames)
-    data.sort_values('Product name', inplace = True)
-    data.drop_duplicates(subset='Product name', keep=False, inplace=True)
-    df = pd.DataFrame(data)
-    df.to_csv('macys-products-clean.csv', header=False, index=False)
-    
-    
+
+
     #==============Search product info by name========================
     scraper.get_product_info()
 
