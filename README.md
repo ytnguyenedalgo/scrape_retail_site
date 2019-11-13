@@ -21,15 +21,10 @@ in a CSV file: the product name, price, and description.
   - Where product urls from "ScrapeRetailSite.py" will be collected and stored.
   - Each row of outputs shows the URL from where the information about the products would be obtained 
 
-4. *"macys-product-raw.csv"*
+4. *"macys-products.csv"*
   - Where the products information from "ScrapeRetailSite.py" will be collected and stored.
   - Each row of outputs shows the product name, price, and description, respectively.
-  
-5. *"macys-product-clean.csv"*
-  - Data cleansing of "macys-product-raw.csv" using pandas software to sort product by their names and
- remove duplicates 
-  - Each row of outputs shows the product name, price, and description, respectively.
-  - The current data shown might not be complete due to [Issue #1](https://github.com/ytnguyenedalgo/scrape_retail_site/issues/1#issue-518645462)
+  - Data cleansing was also performed using pandas framework to sort product by their names and remove duplicates 
 
 ## Current limitation:
   - See [Issue #1](https://github.com/ytnguyenedalgo/scrape_retail_site/issues/1#issue-518645462)
