@@ -11,10 +11,14 @@ Description:
         in a CSV file: the product name, price, and description.
     (2) The information should come from the product pages
         (such as here: https://mcys.co/2GiLTRq)
-    (3) Your program needs a function that allows me to search 
+    (3) Your program needs a function that allows searching
         by name all of the products in the CSV file.
         If a product is found, your program should print
         the product name, price, and description.
+    (4) NOTE: If you want to use Scraper API, 
+        you must provide your API_KEY obtained from scraperapi.com.
+	Search for "REPLACE_ME" in this code to find the correct place
+	to provide that key
 """
 
 from bs4 import BeautifulSoup as Soup
@@ -23,27 +27,23 @@ from lxml.html import fromstring
 from itertools import cycle
 import requests
 import random
-import apikey
 import useragentls
 import pandas as pd
 import sys
 
 
-print("If you're going to use ScraperAPI,\
-      \nplease specify your api key in 'apikey.py'.\
-      \nGet your api key at 'ScraperAPI.com'.")
+API_KEY = 'REPLACE_ME'
+
 which_request = input("\nEnter '1' for basic request,\
                         \n '2' to use ScraperAPI\
                         \n or 'q' to quit the program: ")
 if which_request == 'q':
     sys.exit()
-answer = ['1', '2', 'q']
-while which_request not in answer: 
-    message = input("\nPlease try again!\
+while which_request not in ['1', '2', 'q']: 
+    which_request = input("\nPlease try again!\
                     \nEnter '1' for basic request,\
-                \nor enter '2' to use ScraperAPI: ")
-    which_request = message
-
+                    \nor enter '2' to use ScraperAPI: ")
+    
 
 class RequestsBS4:
     def __init__(self, site):
@@ -83,8 +83,8 @@ class RequestsBS4:
         return soup
     
     def scraper_api(self):
-        your_api_key = apikey.key
-        if your_api_key == 'YOUR_KEY_HERE':
+        your_api_key = API_KEY 
+        if your_api_key == 'REPLACE_ME':
             sys.exit("\nERROR: You have not provided your api key.\n")
         else:
             payload = {'api_key':your_api_key, 'url':self.site}
@@ -110,14 +110,13 @@ class DataProcessing:
         self.fname = fname
         
     def add_to_csv(self):
-        data = pd.read_csv(self.fname, names=self.colnames)
-        df = pd.DataFrame(data)
+        df = pd.read_csv(self.fname, names=self.colnames)
         df1 = pd.DataFrame(self.add_data)
         df2 = df.append(df1, ignore_index=True) 
         df2.drop_duplicates(inplace=True)
         df2.to_csv(self.fname, header=False, index=False)
-        data_col_1 = df2[self.colnames[0]].values.tolist() 
-        return data_col_1
+        output_col_1 = df2[self.colnames[0]].values.tolist() 
+        return output_col_1
         
         
 class Scraper:
@@ -218,36 +217,44 @@ class Scraper:
      
 if __name__ == "__main__":     
     scraper = Scraper()
+
+    scrape_choice = input("\nEnter 't' to scrape a small sample,\
+                          \n'f' to scape full web,\
+                          \n's' to search for product information,\
+                          \nor press 'q' to quit the program: ").upper()
     
-    #=================For small sample test run================================
-    url = scraper.get_url_products_test()
-    p2 = Pool(processes=2)
-    product_scraping = p2.map(scraper.scrape_and_save, url)
-    p2.terminate()
-    p2.join()
+    while scrape_choice not in ['T', 'F', 'S', 'Q']:
+        scrape_choice = scrape_choice
+    
+    if scrape_choice == 'Q':
+        sys.exit() 
+    
+    #For small sample test run
+    if scrape_choice == 'T': 
+        url = scraper.get_url_products_test()
+        p2 = Pool(processes=2)
+        product_scraping = p2.map(scraper.scrape_and_save, url)
+        p2.terminate()
+        p2.join()
+    
+    #For full web run: setup parallel processing tasks
+    elif scrape_choice == 'F':
+        #Get product urls:
+        category_urls = scraper.get_url_categories()
+        p1 = Pool(processes=4)
+        url_scraping = p1.map(scraper.get_url_products, category_urls)
+        p1.terminate()
+        p1.join()
+        #Scrape, parse, and save data:
+        product_urls = pd.read_csv("product-url.csv", names=["url"])
+        url = product_urls["url"].values.tolist()
+        p2 = Pool(processes=2)
+        product_scraping = p2.map(scraper.scrape_and_save, url)
+        p2.terminate()
+        p2.join()
+    
+    #Search product info by name    
+    elif scrape_choice == 'S':
+        scraper.get_product_info()
     
     
-    #=================For full web run: setup parallel processing tasks========
-# =============================================================================
-#     #Get product urls:
-#     category_urls = scraper.get_url_categories()
-#     p1 = Pool(processes=4)
-#     url_scraping = p1.map(scraper.get_url_products, category_urls)
-#     p1.terminate()
-#     p1.join()
-#     #Scrape, parse, and save data:
-#     data = pd.read_csv("product-url.csv", names=["url"])
-#     df = pd.DataFrame(data)
-#     url = df["url"].values.tolist()
-#     p2 = Pool(processes=4)
-#     product_scraping = p2.map(scraper.scrape_and_save, url)
-#     p2.terminate()
-#     p2.join()
-# =============================================================================
-
-
-    #==============Search product info by name========================
-    scraper.get_product_info()
-
-
-
