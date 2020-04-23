@@ -21,110 +21,21 @@ Description:
 	to provide that key
 """
 
-from bs4 import BeautifulSoup as Soup
 from multiprocessing import Pool 
-from lxml.html import fromstring
-from itertools import cycle
-import requests
-import random
-import useragentls
+from readyscrape import RequestsBS4, DataProcessing
 import pandas as pd
 import sys
 
 
-API_KEY = 'REPLACE_ME'
-
-which_request = input("\nEnter '1' for basic request,\
-                        \n '2' to use ScraperAPI\
-                        \n or 'q' to quit the program: ")
-if which_request == 'q':
-    sys.exit()
-while which_request not in ['1', '2', 'q']: 
-    which_request = input("\nPlease try again!\
-                    \nEnter '1' for basic request,\
-                    \nor enter '2' to use ScraperAPI: ")
-    
-
-class RequestsBS4:
-    def __init__(self, site):
-        self.site = site
-        self.user_agent_list = useragentls.list
-        user_agent = random.choice(self.user_agent_list)
-        self.headers = {'User-Agent': user_agent}
-        self.page = None
-                        
-    def get_proxies(self):
-        url = 'https://free-proxy-list.net/'
-        response = requests.get(url)
-        parser = fromstring(response.text)
-        proxies = set()
-        for i in parser.xpath('//tbody/tr')[:10]:
-            if i.xpath('.//td[7][contains(text(),"yes")]'):
-                #Grabbing IP and corresponding PORT
-                proxy = ":".join([i.xpath('.//td[1]/text()')[0], 
-                                  i.xpath('.//td[2]/text()')[0]])
-                proxies.add(proxy)
-        return proxies
-         
-    def basic_request(self):
-        proxy_pool = cycle(self.get_proxies())
-        proxy = next(proxy_pool)
-        proxies = {"http": proxy, "https": proxy}
-        try: 
-            self.page = requests.get(self.site, 
-                                     headers = self.headers,
-                                     proxies = proxies,
-                                     timeout=60)
-            if self.page.status_code != 200:
-                print(self.page.status_code, self.page.text)
-            soup = Soup(self.page.content, "html.parser")
-        except:
-            print('\nSkipping. Connection Error')
-        return soup
-    
-    def scraper_api(self):
-        your_api_key = API_KEY 
-        if your_api_key == 'REPLACE_ME':
-            sys.exit("\nERROR: You have not provided your api key.\n")
-        else:
-            payload = {'api_key':your_api_key, 'url':self.site}
-            self.page = requests.get('http://api.scraperapi.com', 
-                                headers = self.headers,
-                                params = payload, timeout=60) 
-            soup = Soup(self.page.content, "html.parser")
-        return soup 
-    
-    def get_url(self):
-        global which_request 
-        if which_request == '1':
-            soup = self.basic_request()
-        elif which_request == '2':
-            soup = self.scraper_api()
-        return soup 
- 
-    
-class DataProcessing:    
-    def __init__(self, add_data={}, colnames=['col_1'], fname="output.csv"):
-        self.add_data = add_data
-        self.colnames = colnames
-        self.fname = fname
-        
-    def add_to_csv(self):
-        df = pd.read_csv(self.fname, names=self.colnames)
-        df1 = pd.DataFrame(self.add_data)
-        df2 = df.append(df1, ignore_index=True) 
-        df2.drop_duplicates(inplace=True)
-        df2.to_csv(self.fname, header=False, index=False)
-        output_col_1 = df2[self.colnames[0]].values.tolist() 
-        return output_col_1
-        
-        
 class Scraper:
     def __init__(self, site="https://www.macys.com"):
         self.site = site 
         
     def get_url_categories(self):
-        soup = RequestsBS4(self.site).get_url()
+        request = RequestsBS4(self.site)
+        soup = request.get_url()
+        page = request.page
+        print(page.status_code)
         print("\nGETTING CATEGORIES URLs...")
         Categories = set()
         for tag in soup.find_all("a", href=True):
@@ -256,5 +167,3 @@ if __name__ == "__main__":
     #Search product info by name    
     elif scrape_choice == 'S':
         scraper.get_product_info()
-    
-    
