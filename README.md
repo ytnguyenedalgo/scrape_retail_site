@@ -9,13 +9,17 @@ in a CSV file: the product name, price, and description.
   - Speed up the web scraper by using multiprocessing module ✓
 
 ## Guides:
-1. *"scrape_macys.py"*:
+1. *"scrape_macys.py"*
   - Run the "scrape_macys.py" to scrape, save, and search through data gotten from www.macys.com.
+  - Supported by "readyscrape.py" module
   - Data of interest are products listed on Macy's homepage.
 
-2. *"apikey.py"* 
-  - A module written for "scrape_macys.py" to collect user's API key from www.scraperapi.com.
-  - **If user(s) will be using Scraper API to scrape data, please specify your API key in "apikey.py".** 
+2. *"readyscrape.py"* 
+  - A general BeautifullSoup scraper 
+  - Process and save scraped data into csv file using Panda  
+  - Collect user's API key from www.scraperapi.com
+  - **If user(s) will be using Scraper API to scrape data, please specify your API key in "readyscrape.py".**
+   
   
 3. *"product-url.csv"*
   - Where product urls from "scrape_macys.py" will be collected and stored.
